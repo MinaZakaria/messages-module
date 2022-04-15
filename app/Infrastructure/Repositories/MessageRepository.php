@@ -24,9 +24,7 @@ class MessageRepository extends BaseRepository implements MessageRepositoryInter
     {
         $currentUserId = auth()->user()->id;
 
-        $qb = Message::select('messages.*')
-            ->leftJoin('users as senders_table', 'messages.sender_id', '=', 'senders_table.id')
-            ->leftJoin('users as receivers_table', 'messages.receiver_id', '=', 'receivers_table.id');
+        $qb = Message::select('messages.*');
 
         $qb = $qb->where(function ($query) use ($currentUserId) {
             $query->where('sender_id', $currentUserId)
@@ -34,7 +32,9 @@ class MessageRepository extends BaseRepository implements MessageRepositoryInter
         });
 
         if ($searchMessage) {
-            $qb->where(function ($query) use ($searchMessage) {
+            $qb->leftJoin('users as senders_table', 'messages.sender_id', '=', 'senders_table.id')
+            ->leftJoin('users as receivers_table', 'messages.receiver_id', '=', 'receivers_table.id')
+            ->where(function ($query) use ($searchMessage) {
                 $query->where('senders_table.name', 'like', '%' . $searchMessage . '%')
                     ->orWhere('content', 'like', '%' . $searchMessage . '%')
                     ->orWhere('receivers_table.name', 'like', '%' . $searchMessage . '%');
