@@ -4,22 +4,14 @@ namespace App\Exceptions;
 
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Throwable;
+use App\Exceptions\ApiReporter;
 
 class Handler extends ExceptionHandler
 {
     /**
-     * A list of exception types with their corresponding custom log levels.
-     *
-     * @var array<class-string<\Throwable>, \Psr\Log\LogLevel::*>
-     */
-    protected $levels = [
-        //
-    ];
-
-    /**
      * A list of the exception types that are not reported.
      *
-     * @var array<int, class-string<\Throwable>>
+     * @var array<int, class-string<Throwable>>
      */
     protected $dontReport = [
         //
@@ -46,5 +38,23 @@ class Handler extends ExceptionHandler
         $this->reportable(function (Throwable $e) {
             //
         });
+    }
+
+    public function render($request, Throwable $exception)
+    {
+        if ($request->wantsJson()) {   //add Accept: application/json in request
+            return $this->handleApiException($request, $exception);
+        } else {
+            $response = parent::render($request, $exception);
+            return $response;
+        }
+    }
+
+    private function handleApiException($request, Throwable $exception)
+    {
+        $reporter = app(ApiReporter::class);
+        $exception = $reporter->report($exception);
+
+        return response()->json($exception->toArray(), $exception->getStatusCode());
     }
 }
